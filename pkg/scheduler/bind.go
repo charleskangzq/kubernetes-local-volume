@@ -4,14 +4,13 @@ import (
 	"github.com/kubernetes-local-volume/kubernetes-local-volume/pkg/common/logging"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	schedulerapi "k8s.io/kubernetes/pkg/scheduler/apis/extender/v1"
 )
 
 func (lvs *LocalVolumeScheduler) BindHandler(args schedulerapi.ExtenderBindingArgs) *schedulerapi.ExtenderBindingResult {
 	logger := logging.FromContext(lvs.ctx)
 
-	err := lvs.bind(args.PodName, args.PodNamespace, args.PodUID, args.Node)
+	err := lvs.bind(args)
 
 	if err != nil {
 		return &schedulerapi.ExtenderBindingResult{
@@ -37,14 +36,14 @@ func (lvs *LocalVolumeScheduler) BindHandler(args schedulerapi.ExtenderBindingAr
 	}
 }
 
-func (lvs *LocalVolumeScheduler) bind(podName string, podNamespace string, podUID types.UID, node string) error {
-	pod, err := lvs.podLister.Pods(podNamespace).Get(podName)
+func (lvs *LocalVolumeScheduler) bind(args schedulerapi.ExtenderBindingArgs) error {
+	pod, err := lvs.podLister.Pods(args.PodNamespace).Get(args.PodName)
 	if err != nil {
 		return err
 	}
 	pvcNames := lvs.getPodLocalVolumePVCNames(pod)
 
-	lv, err := lvs.localVolumeLister.LocalVolumes(corev1.NamespaceDefault).Get(node)
+	lv, err := lvs.localVolumeLister.LocalVolumes(corev1.NamespaceDefault).Get(args.Node)
 	if err != nil {
 		return err
 	}
